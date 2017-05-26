@@ -46,58 +46,86 @@ function gdbMain() {
 
     function gdbRun() {
         // Set up chart area
-        var w = 800;
+        var w = 1024;
         var h = 450;
         var margin = {
-            top: 60,
-            bottom: 80,
-            left: 100,
-            right: 80
+            top: 80,
+            bottom: 40,
+            left: 240,
+            right: 40
         };
         var width = w - margin.left - margin.right;
         var height = h - margin.top - margin.bottom;
+        var chartTitle = "Afghanistan Disease Burden 1990 - 2013";
         var svg = d3.select("body").append("svg")
             .attr("id", "chart")
             .attr("width", w)
             .attr("height", h);
+
+        svg.append("g")
+            .append("text")
+            .classed("chart-header", true)
+            .text(chartTitle)
+            .attr("transform", "translate(" + w / 2 + "," + 24 + ")");
+
         var chart = svg.append("g")
             .classed("display", true)
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         var yearParser = d3.timeParse("%Y");
         var yearFormat = d3.timeFormat("%Y");
-        var x = d3.scaleTime()
+        var xScale = d3.scaleTime()
             .domain(d3.extent(Dict.years, function (d) {
                 return yearParser(d)
             }))
             .range([0, width]);
-        var y = d3.scaleLinear()
+        var yScale = d3.scaleLinear()
             .domain(d3.extent(Data, function (d) {
                 return d[5];
             }))
             .range([height, 0]);
         var xAxis = d3.axisBottom()
-            .scale(x);
+            .scale(xScale);
         var yAxis = d3.axisLeft()
-            .scale(y)
+            .scale(yScale)
             .tickFormat(d3.format(".0%"));
         var trendline = d3.line()
             .x(function (d) {
                 var date = yearParser(d[0])
-                return x(date);
+                return xScale(date);
             })
             .y(function (d) {
-                return y(d[4]);
+                return yScale(d[4]);
             })
             .curve(d3.curveMonotoneX);
+        var xGridlines = d3.axisBottom()
+            .scale(xScale)
+            .tickSize(height, height)
+            .tickFormat("");
+        var yGridlines = d3.axisLeft()
+            .scale(yScale)
+            .tickSize(-width, 0, 0)
+            .tickFormat("");
 
         var dataFilter = makeDataFilter();
 
+        var plotSymbols = function (i) {
+            return d3.symbol()
+                .size(32)
+                .type(d3.symbols[i % d3.symbols.length]);
+        };
+        var plotColors = d3.scaleOrdinal(d3.schemeCategory10);
+
         plot.call(chart, {
             data: dataFilter(Data),
+            initialize: true,
             axis: {
                 x: xAxis,
                 y: yAxis
+            },
+            gridlines: {
+                x: xGridlines,
+                y: yGridlines
             },
             trendline: trendline
         });
@@ -109,15 +137,7 @@ function gdbMain() {
         function plot(params) {
             console.log("Plotting!");
 
-            // AXiS
-            this.append("g")
-                .classed("x axis", true)
-                .attr("transform", "translate(0," + height + ")")
-                .call(params.axis.x);
-            this.append("g")
-                .classed("y axis", true)
-                .attr("transform", "translate(0,0)")
-                .call(params.axis.y);
+            drawDecorations.call(this, params);
 
             // PLOT DATA
             // enter()
@@ -126,18 +146,23 @@ function gdbMain() {
                     .data([params.data[iLine]])
                     .enter()
                     .append("path")
+                    .style("stroke", function (d, i) {
+                        return plotColors(iLine);
+                    })
                     .classed("trendline trendline" + iLine, true);
 
                 this.selectAll(".point" + iLine)
                     .data(params.data[iLine])
                     .enter()
-                    .append("circle")
+                    .append("path")
+                    .style("stroke", function (d, i) {
+                        return plotColors(iLine);
+                    })
+                    .style("fill", function (d, i) {
+                        return plotColors(iLine);
+                    })
                     .classed("point point" + iLine, true)
-                    .attr("r", 0)
-                    .transition(1500)
-                    .attr("r", 5)
-                    .transition(1000)
-                    .attr("r", 3);
+                    .attr("d", plotSymbols(iLine));
             }
 
             // update
@@ -147,12 +172,8 @@ function gdbMain() {
                         return params.trendline(d);
                     });
                 this.selectAll(".point" + i)
-                    .attr("cx", function (d) {
-                        var date = yearParser(d[0]);
-                        return x(date);
-                    })
-                    .attr("cy", function (d) {
-                        return y(d[4]);
+                    .attr("transform", function(d){
+                        return "translate(" + xScale(yearParser(d[0])) + "," + yScale(d[4]) + ")"
                     });
             }
 
@@ -168,7 +189,43 @@ function gdbMain() {
                     .remove();
             }
         }
+
+        /**
+         * Draw chart decorations
+         * @param params
+         */
+        function drawDecorations(params) {
+            if (params.initialize) {
+                this.append("g")
+                    .call(params.gridlines.x)
+                    .classed("gridline x", true)
+                    .attr("transform", "translate(" + 0 + "," + 0 + ")");
+                this.append("g")
+                    .call(params.gridlines.y)
+                    .classed("gridline y", true)
+                    .attr("transform", "translate(" + 0 + "," + 0 + ")");
+                this.append("g")
+                    .classed("x axis", true)
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(params.axis.x);
+                this.append("g")
+                    .classed("y axis", true)
+                    .attr("transform", "translate(0,0)")
+                    .call(params.axis.y);
+                this.select(".y.axis")
+                    .append("text")
+                    .classed("y axis-label", true)
+                    .attr("transform", "translate(" + -56 + "," + height / 2 + ") rotate(-90)")
+                    .text("Percent (Median)");
+                this.select(".x.axis")
+                    .append("text")
+                    .classed("x axis-label", true)
+                    .attr("transform", "translate(" + width / 2 + "," + 32 + ")")
+                    .text("Year");
+            }
+        }
     }
+
 
     /**
      * Returns a function that caches and returns a filtered subset of the Data

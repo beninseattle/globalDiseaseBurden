@@ -2,7 +2,7 @@ body,html {
     margin: 0;
     padding: 0;
     font-family: "Arial", sans-serif;
-    font-size: 0.95em;
+    font-size: 1.2em;
     text-align: center;
 }
 
@@ -14,8 +14,27 @@ body,html {
     background-color: #F5F2EB;
     border: 1px solid #CCC;
 }
+
+.gridline path,
+.gridline line{
+    fill: none;
+    stroke: #ccc;
+}
+
 .trendline{
     fill: none;
-    stroke: #aaa;
     stroke-width: 3px;
+    opacity: .50;
+}
+
+.axis-label{
+    fill: black;
+    text-anchor: middle;
+    font-size: 1.5em;
+}
+
+.chart-header{
+    text-transform: capitalize;
+    text-anchor: middle;
+    font-size: 1em;
 }
