@@ -70,11 +70,12 @@ function gdbMain() {
             .attr("height", h);
 
         // Header
+        var headerTextTranslate = 48
         svg.append("g")
             .append("text")
             .classed("header-text", true)
             .text(chartTitle)
-            .attr("transform", "translate(" + w / 2 + "," + 32 + ")");
+            .attr("transform", "translate(" + w / 2 + "," + headerTextTranslate + ")");
 
         var chart = svg.append("g")
             .classed("display", true)
