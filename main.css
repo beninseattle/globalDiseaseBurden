@@ -50,9 +50,36 @@ body, html {
     fill: white;
 }
 
-.legend-item {
+.legend-point,
+.legend-line {
+    pointer-events: none;
+}
+
+.legend-item-text {
     text-anchor: start;
     font-size: 75%;
     font-weight: lighter;
     fill: black;
+    pointer-events: none;
+}
+
+
+
+.legend-item-box {
+    stroke: #ddd;
+}
+
+.footer {
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    font-style: italic;
+}
+
+.highlight {
+    opacity: 1;
+}
+
+rect.highlight {
+    fill: lightyellow;
 }

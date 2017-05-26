@@ -45,7 +45,13 @@ function gdbMain() {
     ;
 
     function gdbRun() {
-        // Set up chart area
+        var classes = {
+            point: 'point',
+            trendline: 'trendline',
+            legendPoint: 'legendPoint',
+            legendLine: 'legendLine'
+        };
+
         var w = 1024;
         var h = 450;
         var margins = {
@@ -57,11 +63,13 @@ function gdbMain() {
         var width = w - margins.left - margins.right;
         var height = h - margins.top - margins.bottom;
         var chartTitle = "Afghanistan Disease Burden 1990 - 2013";
-        var svg = d3.select("body").append("svg")
+
+        var svg = d3.select(".content").append("svg")
             .attr("id", "chart")
             .attr("width", w)
             .attr("height", h);
 
+        // Header
         svg.append("g")
             .append("text")
             .classed("header-text", true)
@@ -114,6 +122,11 @@ function gdbMain() {
                 .size(32)
                 .type(d3.symbols[i % d3.symbols.length]);
         };
+        var plotSymbolsLarger = function (i) {
+            return d3.symbol()
+                .size(96)
+                .type(d3.symbols[i % d3.symbols.length]);
+        };
         var plotColors = d3.scaleOrdinal(d3.schemeCategory10);
 
         plot.call(chart, {
@@ -149,6 +162,7 @@ function gdbMain() {
                     .style("stroke", function (d, i) {
                         return plotColors(iLine);
                     })
+                    .attr("data-line", iLine)
                     .classed("trendline trendline" + iLine, true);
 
                 this.selectAll(".point" + iLine)
@@ -162,6 +176,7 @@ function gdbMain() {
                         return plotColors(iLine);
                     })
                     .classed("point point" + iLine, true)
+                    .attr("data-line", iLine)
                     .attr("d", plotSymbols(iLine));
             }
 
@@ -170,10 +185,22 @@ function gdbMain() {
                 this.selectAll(".trendline" + i)
                     .attr("d", function (d) {
                         return params.trendline(d);
+                    })
+                    .on("mouseover", function(d,i){
+                        highlightData(this);
+                    })
+                    .on("mouseout", function(d,i){
+                        highlightData(this);
                     });
                 this.selectAll(".point" + i)
-                    .attr("transform", function(d){
+                    .attr("transform", function (d) {
                         return "translate(" + xScale(yearParser(d[0])) + "," + yScale(d[4]) + ")"
+                    })
+                    .on("mouseover", function(d,i){
+                        highlightData(this);
+                    })
+                    .on("mouseout", function(d,i){
+                        highlightData(this);
                     });
             }
 
@@ -239,6 +266,7 @@ function gdbMain() {
                     right: 0
                 };
                 var legendLineLength = 50;
+                var legendItemHeight = 32;
                 var legendWidth = margins.right - legendPadding.left - legendPadding.right;
                 var legendHeight = h - margins.top - margins.bottom - legendPadding.top - legendPadding.bottom;
 
@@ -254,35 +282,77 @@ function gdbMain() {
                 legend.append("text")
                     .classed("header-text", true)
                     .attr("fill", "black")
-                    .attr("transform", "translate(" + legendWidth/2 + "," + nextLine + ")")
+                    .attr("transform", "translate(" + legendWidth / 2 + "," + nextLine + ")")
                     .text("Legend");
 
-                for(var i = 0; i < params.dataSet.labels.length; i++) {
-                    nextLine += 32;
-                    legend.append("text")
-                        .classed("legend-item", true)
+                for (var i = 0; i < params.dataSet.labels.length; i++) {
+                    nextLine += legendItemHeight;
+                    var legendItem = legend.append("g");
+
+                    var fudgeTextHeight = 10;
+                    legendItem.append("rect")
+                        .attr("width", legendWidth - legendPadding.left - legendPadding.right)
+                        .attr("height", legendItemHeight)
+                        .attr("data-line", i)
+                        .attr("transform", "translate(" + legendPadding.left + "," + (nextLine - fudgeTextHeight) + ")")
+                        .classed("legend-item-box legend-item-box" + i, true)
+                        .on("mouseover", function(){
+                            highlightData(this);
+                        })
+                        .on("mouseout", function(){
+                            highlightData(this);
+                        });
+
+                    legendItem.append("text")
+                        .classed("legend-item-text", true)
                         .attr("fill", "black")
-                        .attr("transform", "translate(" + legendMargins.left + "," + nextLine + ")")
+                        .attr("transform", "translate(" + (legendMargins.left + 3) + "," + nextLine + ")")
                         .text(params.dataSet.labels[i]);
 
-                    legend.append("path")
+                    legendItem.append("path")
                         .style("stroke", plotColors(i))
                         .style("fill", plotColors(i))
-                        .classed("point legend-point" + i, true)
+                        .classed("point legend-point legend-point" + i, true)
                         .attr("d", plotSymbols(i))
-                        .attr("transform", "translate(" + legendWidth/2 + "," + (nextLine + 15) + ")");
+                        .attr("transform", "translate(" + legendWidth / 2 + "," + (nextLine + 15) + ")");
 
-                    legend.append("line")
+                    legendItem.append("line")
                         .style("stroke", plotColors(i))
                         .style("stroke-width", 3)
-                        .classed("trendline legend-line" + i, true)
+                        .classed("trendline legend-line legend-line" + i, true)
                         .attr("x1", 0)
                         .attr("x2", legendLineLength)
                         .attr("y", (nextLine + 15))
-                        .attr("transform", "translate(" + (legendWidth/2 - legendLineLength/2) + "," + (nextLine + 15) + ")");
+                        .attr("transform", "translate(" + (legendWidth / 2 - legendLineLength / 2) + "," + (nextLine + 15) + ")");
 
                 }
 
+            }
+        }
+
+        function highlightData(element) {
+            var i = element.getAttribute("data-line");
+            console.log("highlighting " + i);
+            var points = '.point' + i;
+            var trendlines = '.trendline' + i;
+            var legendItem = '.legend-item-box' + i;
+            var legendLine = '.legend-line' + i;
+            $(points).toggleClass("highlight");
+            $(trendlines).toggleClass("highlight");
+            $(legendItem).toggleClass("highlight");
+            $(legendLine).toggleClass("highlight");
+
+            //debugger;
+
+            // Counter-intuitive, but we just set the highlight if it needs it, so now resize the points appropriately
+            if($(legendItem).hasClass('highlight')){
+                d3.selectAll(points)
+                    .transition()
+                    .attr("d", plotSymbolsLarger(i));
+            } else {
+                d3.selectAll(points)
+                    .transition()
+                    .attr("d", plotSymbols(i));
             }
         }
     }
@@ -341,8 +411,8 @@ function gdbMain() {
                             dataSubset.data.push(lineSubset);
                             dataSubset.labels.push(
                                 Dict.ages[filters.ages[iAge]][0] + ", " +
-                                    Dict.genders[filters.genders[iGender]] + ", " +
-                                    Dict.metrics[filters.metrics[iMetric]]
+                                Dict.genders[filters.genders[iGender]] + ", " +
+                                Dict.metrics[filters.metrics[iMetric]]
                             )
                         }
                     }
