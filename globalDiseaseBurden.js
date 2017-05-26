@@ -201,7 +201,12 @@ function gdbMain() {
                     })
                     .on("mouseout", function(d,i){
                         highlightData(this);
+                    })
+                    .append("title")
+                    .text(function (d) {
+                        return d3.format(".1%")(d[4]);
                     });
+                ;
             }
 
             // exit()
