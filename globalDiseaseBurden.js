@@ -64,9 +64,9 @@ function gdbMain() {
 
         svg.append("g")
             .append("text")
-            .classed("chart-header", true)
+            .classed("header-text", true)
             .text(chartTitle)
-            .attr("transform", "translate(" + w / 2 + "," + 24 + ")");
+            .attr("transform", "translate(" + w / 2 + "," + 32 + ")");
 
         var chart = svg.append("g")
             .classed("display", true)
@@ -222,6 +222,57 @@ function gdbMain() {
                     .classed("x axis-label", true)
                     .attr("transform", "translate(" + width / 2 + "," + 32 + ")")
                     .text("Year");
+
+                var legend = this.select(".y.axis")
+                    .append("g")
+                    .classed("legend", true)
+                    .attr("transform", "translate(" + (10 - margin.left) + "," + 10 + ")");
+
+                var legendMargins = {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 80
+                };
+                var legendLineLength = 50;
+
+                legend.append("rect")
+                    .attr("width", (margin.left - legendMargins.left - legendMargins.right))
+                    .attr("height", h - margin.top - margin.bottom - legendMargins.top - legendMargins.bottom);
+
+                var nextLine = 24;
+                legend.append("text")
+                    .classed("header-text", true)
+                    .attr("fill", "black")
+                    .attr("transform", "translate(" + (margin.left - legendMargins.left - legendMargins.right)/2 + "," + nextLine + ")")
+                    .text("Legend");
+
+                for(var i = 1; i <= 6; i++) {
+                    nextLine += 40;
+                    legend.append("text")
+                        .classed("legend-item", true)
+                        .attr("fill", "black")
+                        .attr("transform", "translate(" + legendMargins.left + "," + nextLine + ")")
+                        .text("Line " + i);
+
+                    legend.append("path")
+                        .style("stroke", plotColors(i))
+                        .style("fill", plotColors(i))
+                        .classed("point legend-point" + i, true)
+                        .attr("d", plotSymbols(i))
+                        .attr("transform", "translate(" + (margin.left - legendMargins.left - legendMargins.right)/2 + "," + (nextLine + 15) + ")");
+
+                    legend.append("line")
+                        .style("stroke", plotColors(i))
+                        .style("stroke-width", 3)
+                        .classed("trendline legend-line" + i, true)
+                        .attr("x1", 0)
+                        .attr("x2", legendLineLength)
+                        .attr("y", (nextLine + 15))
+                        .attr("transform", "translate(" + ((margin.left - legendMargins.left - legendMargins.right)/2 - legendLineLength/2) + "," + (nextLine + 15) + ")");
+
+                }
+
             }
         }
     }

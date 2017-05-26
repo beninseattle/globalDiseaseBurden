@@ -1,4 +1,4 @@
-body,html {
+body, html {
     margin: 0;
     padding: 0;
     font-family: "Arial", sans-serif;
@@ -10,31 +10,46 @@ body,html {
     padding-top: 150px;
 }
 
-#chart{
+#chart {
     background-color: #F5F2EB;
     border: 1px solid #CCC;
 }
 
 .gridline path,
-.gridline line{
+.gridline line {
     fill: none;
     stroke: #ccc;
 }
 
-.trendline{
+.trendline {
     fill: none;
     stroke-width: 3px;
     opacity: .50;
 }
 
-.axis-label{
+.axis-label {
     fill: black;
     text-anchor: middle;
     font-size: 1.5em;
 }
 
-.chart-header{
+.header-text {
     text-transform: capitalize;
     text-anchor: middle;
-    font-size: 1em;
+    font-size: 150%;
+}
+
+.legend {
+    stroke: black;
+    text-anchor: middle;
+}
+
+.legend rect {
+    stroke-width: 1px;
+    fill: white;
+}
+
+.legend-item {
+    text-anchor: start;
+    fill: black;
 }
