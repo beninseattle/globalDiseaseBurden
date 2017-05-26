@@ -117,7 +117,7 @@ function gdbMain() {
         var plotColors = d3.scaleOrdinal(d3.schemeCategory10);
 
         plot.call(chart, {
-            data: dataFilter(Data),
+            dataSet: dataFilter(Data),
             initialize: true,
             axis: {
                 x: xAxis,
@@ -141,9 +141,9 @@ function gdbMain() {
 
             // PLOT DATA
             // enter()
-            for (var iLine = 0; iLine < params.data.length; iLine++) {
+            for (var iLine = 0; iLine < params.dataSet.data.length; iLine++) {
                 this.selectAll(".trendline" + iLine)
-                    .data([params.data[iLine]])
+                    .data([params.dataSet.data[iLine]])
                     .enter()
                     .append("path")
                     .style("stroke", function (d, i) {
@@ -152,7 +152,7 @@ function gdbMain() {
                     .classed("trendline trendline" + iLine, true);
 
                 this.selectAll(".point" + iLine)
-                    .data(params.data[iLine])
+                    .data(params.dataSet.data[iLine])
                     .enter()
                     .append("path")
                     .style("stroke", function (d, i) {
@@ -166,7 +166,7 @@ function gdbMain() {
             }
 
             // update
-            for (var i = 0; i < params.data.length; i++) {
+            for (var i = 0; i < params.dataSet.data.length; i++) {
                 this.selectAll(".trendline" + i)
                     .attr("d", function (d) {
                         return params.trendline(d);
@@ -178,13 +178,13 @@ function gdbMain() {
             }
 
             // exit()
-            for (vari = 0; iLine < params.data.length; iLine++) {
+            for (vari = 0; iLine < params.dataSet.data.length; iLine++) {
                 this.selectAll(".trendline" + iLine)
-                    .data([params.data[iLine]])
+                    .data([params.dataSet.data[iLine]])
                     .exit()
                     .remove();
                 this.selectAll(".point" + iLine)
-                    .data(params.data[iLine])
+                    .data(params.dataSet.data[iLine])
                     .exit()
                     .remove();
             }
@@ -263,7 +263,7 @@ function gdbMain() {
                         .classed("legend-item", true)
                         .attr("fill", "black")
                         .attr("transform", "translate(" + legendMargins.left + "," + nextLine + ")")
-                        .text("Line " + i);
+                        .text(params.dataSet.labels[i]);
 
                     legend.append("path")
                         .style("stroke", plotColors(i))
@@ -298,7 +298,10 @@ function gdbMain() {
      * @todo Refactor data filter function
      */
     function makeDataFilter() {
-        var dataSubset = [],
+        var dataSubset = {
+                labels: [],
+                data: []
+            },
             filtersChanged = false,
             filters = {
                 ages: [36, 38],
@@ -320,9 +323,10 @@ function gdbMain() {
          */
         function filterData(Data) {
             console.log("filtering data");
-            if (filtersChanged || dataSubset.length === 0) {
+            if (filtersChanged || dataSubset.data.length === 0) {
                 console.log("  creating new data subset");
-                dataSubset = [];
+                dataSubset.labels = [];
+                dataSubset.data = [];
                 for (var iAge = 0; iAge < filters.ages.length; iAge++) {
                     for (var iGender = 0; iGender < filters.genders.length; iGender++) {
                         for (var iMetric = 0; iMetric < filters.metrics.length; iMetric++) {
@@ -334,7 +338,12 @@ function gdbMain() {
                                     lineSubset.push([Data[i][1], Data[i][2], Data[i][3], Data[i][4], Data[i][5]]);
                                 }
                             }
-                            dataSubset.push(lineSubset);
+                            dataSubset.data.push(lineSubset);
+                            dataSubset.labels.push(
+                                Dict.ages[filters.ages[iAge]][0] + ", " +
+                                    Dict.genders[filters.genders[iGender]] + ", " +
+                                    Dict.metrics[filters.metrics[iMetric]]
+                            )
                         }
                     }
                 }

@@ -52,5 +52,7 @@ body, html {
 
 .legend-item {
     text-anchor: start;
+    font-size: 75%;
+    font-weight: lighter;
     fill: black;
 }
