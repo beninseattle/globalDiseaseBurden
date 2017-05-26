@@ -48,14 +48,14 @@ function gdbMain() {
         // Set up chart area
         var w = 1024;
         var h = 450;
-        var margin = {
+        var margins = {
             top: 80,
             bottom: 40,
-            left: 240,
-            right: 40
+            left: 60,
+            right: 240
         };
-        var width = w - margin.left - margin.right;
-        var height = h - margin.top - margin.bottom;
+        var width = w - margins.left - margins.right;
+        var height = h - margins.top - margins.bottom;
         var chartTitle = "Afghanistan Disease Burden 1990 - 2013";
         var svg = d3.select("body").append("svg")
             .attr("id", "chart")
@@ -70,7 +70,7 @@ function gdbMain() {
 
         var chart = svg.append("g")
             .classed("display", true)
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            .attr("transform", "translate(" + margins.left + "," + margins.top + ")");
 
         var yearParser = d3.timeParse("%Y");
         var yearFormat = d3.timeFormat("%Y");
@@ -196,6 +196,9 @@ function gdbMain() {
          */
         function drawDecorations(params) {
             if (params.initialize) {
+                var yAxisLabelTranslate = -38;
+                var xAxisLabelTranslate = 32;
+
                 this.append("g")
                     .call(params.gridlines.x)
                     .classed("gridline x", true)
@@ -215,36 +218,43 @@ function gdbMain() {
                 this.select(".y.axis")
                     .append("text")
                     .classed("y axis-label", true)
-                    .attr("transform", "translate(" + -56 + "," + height / 2 + ") rotate(-90)")
+                    .attr("transform", "translate(" + yAxisLabelTranslate + "," + height / 2 + ") rotate(-90)")
                     .text("Percent (Median)");
                 this.select(".x.axis")
                     .append("text")
                     .classed("x axis-label", true)
-                    .attr("transform", "translate(" + width / 2 + "," + 32 + ")")
+                    .attr("transform", "translate(" + width / 2 + "," + xAxisLabelTranslate + ")")
                     .text("Year");
 
-                var legend = this.select(".y.axis")
-                    .append("g")
-                    .classed("legend", true)
-                    .attr("transform", "translate(" + (10 - margin.left) + "," + 10 + ")");
-
+                var legendPadding = {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
                 var legendMargins = {
                     top: 10,
                     bottom: 10,
                     left: 10,
-                    right: 80
+                    right: 0
                 };
                 var legendLineLength = 50;
+                var legendWidth = margins.right - legendPadding.left - legendPadding.right;
+                var legendHeight = h - margins.top - margins.bottom - legendPadding.top - legendPadding.bottom;
+
+                var legend = this.append("g")
+                    .classed("legend", true)
+                    .attr("transform", "translate(" + (width + legendPadding.left) + "," + legendPadding.top + ")");
 
                 legend.append("rect")
-                    .attr("width", (margin.left - legendMargins.left - legendMargins.right))
-                    .attr("height", h - margin.top - margin.bottom - legendMargins.top - legendMargins.bottom);
+                    .attr("width", legendWidth)
+                    .attr("height", legendHeight);
 
                 var nextLine = 24;
                 legend.append("text")
                     .classed("header-text", true)
                     .attr("fill", "black")
-                    .attr("transform", "translate(" + (margin.left - legendMargins.left - legendMargins.right)/2 + "," + nextLine + ")")
+                    .attr("transform", "translate(" + legendWidth/2 + "," + nextLine + ")")
                     .text("Legend");
 
                 for(var i = 1; i <= 6; i++) {
@@ -260,7 +270,7 @@ function gdbMain() {
                         .style("fill", plotColors(i))
                         .classed("point legend-point" + i, true)
                         .attr("d", plotSymbols(i))
-                        .attr("transform", "translate(" + (margin.left - legendMargins.left - legendMargins.right)/2 + "," + (nextLine + 15) + ")");
+                        .attr("transform", "translate(" + legendWidth/2 + "," + (nextLine + 15) + ")");
 
                     legend.append("line")
                         .style("stroke", plotColors(i))
@@ -269,7 +279,7 @@ function gdbMain() {
                         .attr("x1", 0)
                         .attr("x2", legendLineLength)
                         .attr("y", (nextLine + 15))
-                        .attr("transform", "translate(" + ((margin.left - legendMargins.left - legendMargins.right)/2 - legendLineLength/2) + "," + (nextLine + 15) + ")");
+                        .attr("transform", "translate(" + (legendWidth/2 - legendLineLength/2) + "," + (nextLine + 15) + ")");
 
                 }
 

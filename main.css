@@ -42,6 +42,7 @@ body, html {
 .legend {
     stroke: black;
     text-anchor: middle;
+    font-size: 50%;
 }
 
 .legend rect {
