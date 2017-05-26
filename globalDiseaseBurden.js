@@ -257,8 +257,8 @@ function gdbMain() {
                     .attr("transform", "translate(" + legendWidth/2 + "," + nextLine + ")")
                     .text("Legend");
 
-                for(var i = 1; i <= 6; i++) {
-                    nextLine += 40;
+                for(var i = 0; i < params.dataSet.labels.length; i++) {
+                    nextLine += 32;
                     legend.append("text")
                         .classed("legend-item", true)
                         .attr("fill", "black")
