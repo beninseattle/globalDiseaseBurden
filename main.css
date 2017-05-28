@@ -8,6 +8,7 @@ body, html {
 
 .loading {
     padding-top: 150px;
+    padding-bottom: 150px;
 }
 
 #chart {
@@ -36,7 +37,7 @@ body, html {
 .header-text {
     text-transform: capitalize;
     text-anchor: middle;
-    font-size: 200%;
+    font-size: 150%;
 }
 
 .legend {
@@ -63,8 +64,6 @@ body, html {
     pointer-events: none;
 }
 
-
-
 .legend-item-box {
     stroke: #ddd;
 }
@@ -82,4 +81,18 @@ body, html {
 
 rect.highlight {
     fill: lightyellow;
+}
+
+.error {
+    fill: lightred;
+    font-weight: bold;
+}
+
+.controls {
+    font-family: 'Arial', sans-serif;
+    font-size: 75%;
+    padding: 10px 20px 10px 20px;
+    margin: 0px 100px 0px 100px;
+    background-color: ivory;
+    border: gray 1px solid;
 }

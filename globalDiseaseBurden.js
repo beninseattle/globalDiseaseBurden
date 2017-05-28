@@ -1,7 +1,7 @@
 function gdbMain() {
     var DictFiles = ['ages', 'genders', 'locations', 'metrics', 'years'];
     var Dict = {};
-    var DataFiles = ['afghanistan'];
+    var DataFiles = ['allcountries'];
     /**
      * Data[0]: Country ID
      * Data[1]: Year
@@ -12,8 +12,14 @@ function gdbMain() {
      * @type {Array}
      */
     var Data = [];
+    var Filters = {
+        changed: true,
+        ages: [36, 38],
+        genders: [3],
+        countries: [160],
+        metrics: [1, 2]
+    };
 
-    console.log('Initializing');
     $.when(
         $.getJSON(DictFiles[0] + '.json', function (data) {
             Dict[DictFiles[0]] = data;
@@ -40,18 +46,12 @@ function gdbMain() {
         })
         .fail(function (error) {
                 console.log('Data load faled: ', error);
+                $(".loading").addClass("error").text("An error occurred while loading the data: " + error);
             }
         )
     ;
 
     function gdbRun() {
-        var classes = {
-            point: 'point',
-            trendline: 'trendline',
-            legendPoint: 'legendPoint',
-            legendLine: 'legendLine'
-        };
-
         var w = 1024;
         var h = 450;
         var margins = {
@@ -62,7 +62,7 @@ function gdbMain() {
         };
         var width = w - margins.left - margins.right;
         var height = h - margins.top - margins.bottom;
-        var chartTitle = "Afghanistan Disease Burden 1990 - 2013";
+        var chartTitle = "Disease Burden 1990 - 2013";
 
         var svg = d3.select(".content").append("svg")
             .attr("id", "chart")
@@ -74,7 +74,7 @@ function gdbMain() {
         svg.append("g")
             .append("text")
             .classed("header-text", true)
-            .text(chartTitle)
+            .text( Dict.locations[Filters.countries[0]][1] + " " + chartTitle)
             .attr("transform", "translate(" + w / 2 + "," + headerTextTranslate + ")");
 
         var chart = svg.append("g")
@@ -82,16 +82,22 @@ function gdbMain() {
             .attr("transform", "translate(" + margins.left + "," + margins.top + ")");
 
         var yearParser = d3.timeParse("%Y");
-        var yearFormat = d3.timeFormat("%Y");
+
+        // Need to filter the data first to determine extents for the Y axis
+        var dataFilter = makeDataFilter();
+        var filteredSet = dataFilter(Data);
+        var cols = {
+            'year': 0,
+            'percent': 4
+        };
+
         var xScale = d3.scaleTime()
             .domain(d3.extent(Dict.years, function (d) {
                 return yearParser(d)
             }))
             .range([0, width]);
         var yScale = d3.scaleLinear()
-            .domain(d3.extent(Data, function (d) {
-                return d[5];
-            }))
+            .domain(d3.extent([filteredSet.extents.min, filteredSet.extents.max]))
             .range([height, 0]);
         var xAxis = d3.axisBottom()
             .scale(xScale);
@@ -100,11 +106,11 @@ function gdbMain() {
             .tickFormat(d3.format(".0%"));
         var trendline = d3.line()
             .x(function (d) {
-                var date = yearParser(d[0])
+                var date = yearParser(d[cols.year])
                 return xScale(date);
             })
             .y(function (d) {
-                return yScale(d[4]);
+                return yScale(d[cols.percent]);
             })
             .curve(d3.curveMonotoneX);
         var xGridlines = d3.axisBottom()
@@ -115,8 +121,6 @@ function gdbMain() {
             .scale(yScale)
             .tickSize(-width, 0, 0)
             .tickFormat("");
-
-        var dataFilter = makeDataFilter();
 
         var plotSymbols = function (i) {
             return d3.symbol()
@@ -130,9 +134,11 @@ function gdbMain() {
         };
         var plotColors = d3.scaleOrdinal(d3.schemeCategory10);
 
+        setUpControls();
         plot.call(chart, {
-            dataSet: dataFilter(Data),
+            dataSet: filteredSet,
             initialize: true,
+            update: false,
             axis: {
                 x: xAxis,
                 y: yAxis
@@ -144,13 +150,90 @@ function gdbMain() {
             trendline: trendline
         });
 
+
+        /**
+         * Set up controls
+         */
+        function setUpControls() {
+            var controls = d3.select(".content")
+                .append("div")
+                .classed("controls", true)
+                .append("span")
+                .text("Select country ");
+
+            var countryControl = controls.append("select")
+                .classed("country-select", true);
+
+            for (var i in Dict.locations) {
+                var selected = false;
+                if (Filters.countries.indexOf(+i) !== -1) {
+                    selected = true;
+                }
+                countryControl.insert("option")
+                    .attr("value", i)
+                    .property("selected", selected)
+                    .text(Dict.locations[i][1]);
+            }
+            countryControl.on("change", updateFilters);
+
+            controls.append("span")
+                .text(" Select gender ");
+            var genderControl = controls.append("select")
+                .classed("gender-select", true);
+
+            for (var i in Dict.genders) {
+                var selected = false;
+                if (Filters.genders.indexOf(+i) !== -1) {
+                    selected = true;
+                }
+                genderControl.insert("option")
+                    .attr("value", i)
+                    .property("selected", selected)
+                    .text(Dict.genders[i]);
+            }
+            genderControl.on("change", updateFilters);
+        }
+
+        /**
+         * Update filters
+         */
+        function updateFilters() {
+            console.log("update filters and replot chart from " + this.className);
+            if (this.className === "country-select") {
+                Filters.countries = [+(this.value)];
+                d3.select(".header-text")
+                    .text( Dict.locations[Filters.countries[0]][1] + " " + chartTitle);
+            }
+            if (this.className === "gender-select") {
+                Filters.genders = [+(this.value)];
+            }
+
+            Filters.changed = true;
+            filteredSet = dataFilter(Data);
+            yScale = d3.scaleLinear()
+                .domain(d3.extent([filteredSet.extents.min, filteredSet.extents.max]))
+                .range([height, 0]);
+            plot.call(chart, {
+                dataSet: filteredSet,
+                initialize: false,
+                update: true,
+                axis: {
+                    x: xAxis,
+                    y: yAxis
+                },
+                gridlines: {
+                    x: xGridlines,
+                    y: yGridlines
+                },
+                trendline: trendline
+            });
+        }
+
         /**
          * Plot the chart
          * @param {Object} params
          */
         function plot(params) {
-            console.log("Plotting!");
-
             drawDecorations.call(this, params);
 
             // PLOT DATA
@@ -187,25 +270,25 @@ function gdbMain() {
                     .attr("d", function (d) {
                         return params.trendline(d);
                     })
-                    .on("mouseover", function(d,i){
+                    .on("mouseover", function (d, i) {
                         highlightData(this);
                     })
-                    .on("mouseout", function(d,i){
+                    .on("mouseout", function (d, i) {
                         highlightData(this);
                     });
                 this.selectAll(".point" + i)
                     .attr("transform", function (d) {
-                        return "translate(" + xScale(yearParser(d[0])) + "," + yScale(d[4]) + ")"
+                        return "translate(" + xScale(yearParser(d[cols.year])) + "," + yScale(d[cols.percent]) + ")"
                     })
-                    .on("mouseover", function(d,i){
+                    .on("mouseover", function (d, i) {
                         highlightData(this);
                     })
-                    .on("mouseout", function(d,i){
+                    .on("mouseout", function (d, i) {
                         highlightData(this);
                     })
                     .append("title")
                     .text(function (d) {
-                        return d3.format(".1%")(d[4]);
+                        return d3.format(".1%")(d[cols.percent]);
                     });
                 ;
             }
@@ -302,10 +385,10 @@ function gdbMain() {
                         .attr("data-line", i)
                         .attr("transform", "translate(" + legendPadding.left + "," + (nextLine - fudgeTextHeight) + ")")
                         .classed("legend-item-box legend-item-box" + i, true)
-                        .on("mouseover", function(){
+                        .on("mouseover", function () {
                             highlightData(this);
                         })
-                        .on("mouseout", function(){
+                        .on("mouseout", function () {
                             highlightData(this);
                         });
 
@@ -338,7 +421,7 @@ function gdbMain() {
 
         function highlightData(element) {
             var i = element.getAttribute("data-line");
-            console.log("highlighting " + i);
+
             var points = '.point' + i;
             var trendlines = '.trendline' + i;
             var legendItem = '.legend-item-box' + i;
@@ -351,7 +434,7 @@ function gdbMain() {
             //debugger;
 
             // Counter-intuitive, but we just set the highlight if it needs it, so now resize the points appropriately
-            if($(legendItem).hasClass('highlight')){
+            if ($(legendItem).hasClass('highlight')) {
                 d3.selectAll(points)
                     .transition()
                     .attr("d", plotSymbolsLarger(i));
@@ -371,18 +454,16 @@ function gdbMain() {
      *
      * @returns {filterData}
      *
-     * @todo Refactor data filter function
+     * @todo Refactor data filter function, which is hardcoded to only load the first country ID
      */
     function makeDataFilter() {
         var dataSubset = {
                 labels: [],
-                data: []
-            },
-            filtersChanged = false,
-            filters = {
-                ages: [36, 38],
-                genders: [1, 2],
-                metrics: [1, 2]
+                data: [],
+                extents: {
+                    min: 0,
+                    max: 0
+                }
             };
 
         /**
@@ -394,36 +475,51 @@ function gdbMain() {
          * subset[4]: Mean Percentage
          *
          * @param Data
-         * @returns {Array}
+         * @returns {Object}
          *
          */
         function filterData(Data) {
-            console.log("filtering data");
-            if (filtersChanged || dataSubset.data.length === 0) {
-                console.log("  creating new data subset");
+            if (Filters.changed || dataSubset.data.length === 0) {
                 dataSubset.labels = [];
                 dataSubset.data = [];
-                for (var iAge = 0; iAge < filters.ages.length; iAge++) {
-                    for (var iGender = 0; iGender < filters.genders.length; iGender++) {
-                        for (var iMetric = 0; iMetric < filters.metrics.length; iMetric++) {
+                dataSubset.extents = undefined;
+                for (var iAge = 0; iAge < Filters.ages.length; iAge++) {
+                    for (var iGender = 0; iGender < Filters.genders.length; iGender++) {
+                        for (var iMetric = 0; iMetric < Filters.metrics.length; iMetric++) {
                             var lineSubset = [];
                             for (var i = 0; i < Data.length; i++) {
-                                if (Data[i][2] === filters.ages[iAge] &&
-                                    Data[i][3] === filters.genders[iGender] &&
-                                    Data[i][4] === filters.metrics[iMetric]) {
+                                if (Data[i][0] === Filters.countries[0] &&
+                                    Data[i][2] === Filters.ages[iAge] &&
+                                    Data[i][3] === Filters.genders[iGender] &&
+                                    Data[i][4] === Filters.metrics[iMetric]) {
                                     lineSubset.push([Data[i][1], Data[i][2], Data[i][3], Data[i][4], Data[i][5]]);
+
+                                    // Track extents for this subset
+                                    if (dataSubset.extents === undefined) {
+                                        dataSubset.extents = {
+                                            'min': Data[i][5],
+                                            'max': Data[i][5]
+                                        };
+                                    } else {
+                                        if (dataSubset.extents.min > Data[i][5]) {
+                                            dataSubset.extents.min = Data[i][5];
+                                        }
+                                        if (dataSubset.extents.max < Data[i][5]) {
+                                            dataSubset.extents.max = Data[i][5];
+                                        }
+                                    }
                                 }
                             }
                             dataSubset.data.push(lineSubset);
                             dataSubset.labels.push(
-                                Dict.ages[filters.ages[iAge]][0] + ", " +
-                                Dict.genders[filters.genders[iGender]] + ", " +
-                                Dict.metrics[filters.metrics[iMetric]]
+                                Dict.ages[Filters.ages[iAge]][0] + ", " +
+                                Dict.genders[Filters.genders[iGender]] + ", " +
+                                Dict.metrics[Filters.metrics[iMetric]]
                             )
                         }
                     }
                 }
-                filtersChanged = false;
+                Filters.changed = false;
             }
 
             return dataSubset;
