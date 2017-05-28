@@ -1,3 +1,6 @@
+/**
+ * Entry point when page is ready and container for all functionality
+ */
 function gdbMain() {
     $(".enable-scripts").hide();
     $(".loading").show();
@@ -23,7 +26,7 @@ function gdbMain() {
      * Data[3]: Gender ID
      * Data[4]: Metric ID
      * Data[5]: Mean Percentage
-     * @type {Array}
+     * @type {Array[]}
      */
     var Data = [];
     var Filters = {
@@ -35,8 +38,10 @@ function gdbMain() {
     };
 
     /**
-     * Container for sorted UI select lists
-     * @type {{locations: Array}}
+     * Container for UI sorted select list IDs
+     * @type {{
+     *   locationsIds: Array
+     * }}
      */
     var SortedSelects = {
         locationsIds: []
@@ -51,7 +56,7 @@ function gdbMain() {
         }),
         $.getJSON(DictFiles[2] + '.json', function (data) {
             Dict[DictFiles[2]] = data;
-            SortedSelects.locationsIds = Object.keys(data).sort(function (a, b) {
+            SortedSelects.locationsIds = Object.keys(data).sort(function sortLocations(a, b) {
                 if (data[a][1] < data[b][1]) {
                     return -1;
                 } else if (data[a][1] > data[b][1]) {
@@ -70,8 +75,8 @@ function gdbMain() {
         $.ajax({
             'dataType': "json",
             'url': DataFiles[0] + '.json',
-            'xhr': function () {
-                var xhr = $.ajaxSettings.xhr(); // call the original function
+            'xhr': function progressXhr() {
+                var xhr = $.ajaxSettings.xhr();
                 xhr.addEventListener('progress', dataLoadProgress, false);
                 return xhr;
             },
@@ -80,17 +85,19 @@ function gdbMain() {
             }
         })
     )
-        .done(function () {
-            $(".loading").hide();
-            gdbRun();
-        })
-        .fail(function (error) {
-                console.log('Data load faled: ', error);
-                $(".loading").addClass("error").text("An error occurred while loading the data: " + error);
-            }
-        )
-    ;
+    .done(function () {
+        $(".loading").hide();
+        gdbRun();
+    })
+    .fail(function (error) {
+            console.log('Data load failed: ', error);
+            $(".loading").addClass("error").text("An error occurred while loading the data: " + error);
+        }
+    );
 
+    /**
+     * Once all initialization is done, main logic occurs here
+     */
     function gdbRun() {
         var w = 1024;
         var h = 450;
@@ -110,7 +117,7 @@ function gdbMain() {
             .attr("height", h);
 
         // Header
-        var headerTextTranslate = 48
+        var headerTextTranslate = 48;
         svg.append("g")
             .append("text")
             .classed("header-text", true)
@@ -146,7 +153,7 @@ function gdbMain() {
             .tickFormat(d3.format(".0%"));
         var trendline = d3.line()
             .x(function (d) {
-                var date = yearParser(d[cols.year])
+                var date = yearParser(d[cols.year]);
                 return xScale(date);
             })
             .y(function (d) {
@@ -204,12 +211,11 @@ function gdbMain() {
             var countryControl = controls.append("select")
                 .classed("country-select", true);
 
+            var selected = false;
+
             for (var i = 0; i < SortedSelects.locationsIds.length; i++) {
                 var locationId = SortedSelects.locationsIds[i];
-                var selected = false;
-                if (Filters.locations.indexOf(locationId) !== -1) {
-                    selected = true;
-                }
+                selected = Filters.locations.indexOf(locationId) !== -1;
                 countryControl.insert("option")
                     .attr("value", locationId)
                     .property("selected", selected)
@@ -223,10 +229,7 @@ function gdbMain() {
                 .classed("gender-select", true);
 
             for (var i in Dict.genders) {
-                var selected = false;
-                if (Filters.genders.indexOf(+i) !== -1) {
-                    selected = true;
-                }
+                selected = Filters.genders.indexOf(+i) !== -1;
                 genderControl.insert("option")
                     .attr("value", i)
                     .property("selected", selected)
@@ -236,40 +239,8 @@ function gdbMain() {
         }
 
         /**
-         * Update filters
-         */
-        function updateFilters() {
-            console.log("update filters and replot chart from " + this.className);
-            if (this.className === "country-select") {
-                Filters.locations = [+(this.value)];
-                d3.select(".header-text")
-                    .text(Dict.locations[Filters.locations[0]][1] + " " + chartTitle);
-            }
-            if (this.className === "gender-select") {
-                Filters.genders = [+(this.value)];
-            }
-
-            Filters.changed = true;
-            filteredSet = dataFilter(Data);
-            yScale.domain(d3.extent([filteredSet.extents.min, filteredSet.extents.max]));
-            updatePlot.call(chart, {
-                dataSet: filteredSet,
-                initialize: false,
-                update: true,
-                axis: {
-                    x: xAxis,
-                    y: yAxis
-                },
-                gridlines: {
-                    x: xGridlines,
-                    y: yGridlines
-                },
-                trendline: trendline
-            });
-        }
-
-        /**
          * Plot the chart
+         *
          * @param {Object} params
          */
         function plot(params) {
@@ -277,52 +248,52 @@ function gdbMain() {
 
             // PLOT DATA
             // enter()
-            for (var iLine = 0; iLine < params.dataSet.data.length; iLine++) {
-                this.selectAll(".trendline" + iLine)
-                    .data([params.dataSet.data[iLine]])
+            for (var iSet = 0; iSet < params.dataSet.data.length; iSet++) {
+                this.selectAll(".trendline" + iSet)
+                    .data([params.dataSet.data[iSet]])
                     .enter()
                     .append("path")
-                    .style("stroke", function (d, i) {
-                        return plotColors(iLine);
+                    .style("stroke", function () {
+                        return plotColors(iSet);
                     })
-                    .attr("data-line", iLine)
-                    .classed("trendline trendline" + iLine, true);
+                    .attr("data-line", iSet)
+                    .classed("trendline trendline" + iSet, true);
 
-                this.selectAll(".point" + iLine)
-                    .data(params.dataSet.data[iLine])
+                this.selectAll(".point" + iSet)
+                    .data(params.dataSet.data[iSet])
                     .enter()
                     .append("path")
-                    .style("stroke", function (d, i) {
-                        return plotColors(iLine);
+                    .style("stroke", function () {
+                        return plotColors(iSet);
                     })
-                    .style("fill", function (d, i) {
-                        return plotColors(iLine);
+                    .style("fill", function () {
+                        return plotColors(iSet);
                     })
-                    .classed("point point" + iLine, true)
-                    .attr("data-line", iLine)
-                    .attr("d", plotSymbols(iLine));
+                    .classed("point point" + iSet, true)
+                    .attr("data-line", iSet)
+                    .attr("d", plotSymbols(iSet));
             }
 
             // update
-            for (var i = 0; i < params.dataSet.data.length; i++) {
-                this.selectAll(".trendline" + i)
+            for (var iSet = 0; iSet < params.dataSet.data.length; iSet++) {
+                this.selectAll(".trendline" + iSet)
                     .attr("d", function (d) {
                         return params.trendline(d);
                     })
-                    .on("mouseover", function (d, i) {
+                    .on("mouseover", function () {
                         highlightData(this);
                     })
-                    .on("mouseout", function (d, i) {
+                    .on("mouseout", function () {
                         highlightData(this);
                     });
-                this.selectAll(".point" + i)
+                this.selectAll(".point" + iSet)
                     .attr("transform", function (d) {
                         return "translate(" + xScale(yearParser(d[cols.year])) + "," + yScale(d[cols.percent]) + ")"
                     })
-                    .on("mouseover", function (d, i) {
+                    .on("mouseover", function () {
                         highlightData(this);
                     })
-                    .on("mouseout", function (d, i) {
+                    .on("mouseout", function () {
                         highlightData(this);
                     })
                     .append("title")
@@ -332,18 +303,23 @@ function gdbMain() {
             }
 
             // exit()
-            for (var i = 0; iLine < params.dataSet.data.length; iLine++) {
-                this.selectAll(".trendline" + iLine)
-                    .data([params.dataSet.data[iLine]])
+            for (var iSet = 0; iSet < params.dataSet.data.length; iSet++) {
+                this.selectAll(".trendline" + iSet)
+                    .data([params.dataSet.data[iSet]])
                     .exit()
                     .remove();
-                this.selectAll(".point" + iLine)
-                    .data(params.dataSet.data[iLine])
+                this.selectAll(".point" + iSet)
+                    .data(params.dataSet.data[iSet])
                     .exit()
                     .remove();
             }
         }
 
+        /**
+         * Update data without unnecessary calls for styling/classing/etc
+         *
+         * @param {Object} params
+         */
         function updatePlot(params) {
             var transition = d3.transition()
                 .duration(750)
@@ -354,25 +330,25 @@ function gdbMain() {
 
             // PLOT DATA
             // enter()
-            for (var iLine = 0; iLine < params.dataSet.data.length; iLine++) {
-                this.selectAll(".trendline" + iLine)
-                    .data([params.dataSet.data[iLine]])
+            for (var iSet = 0; iSet < params.dataSet.data.length; iSet++) {
+                this.selectAll(".trendline" + iSet)
+                    .data([params.dataSet.data[iSet]])
                     .enter();
 
-                this.selectAll(".point" + iLine)
-                    .data(params.dataSet.data[iLine])
+                this.selectAll(".point" + iSet)
+                    .data(params.dataSet.data[iSet])
                     .enter()
-                    .attr("d", plotSymbols(iLine));
+                    .attr("d", plotSymbols(iSet));
             }
 
             // update
-            for (var i = 0; i < params.dataSet.data.length; i++) {
-                this.selectAll(".trendline" + i)
+            for (var iSet = 0; iSet < params.dataSet.data.length; iSet++) {
+                this.selectAll(".trendline" + iSet)
                     .transition(transition)
                     .attr("d", function (d) {
                         return params.trendline(d);
                     });
-                var points = this.selectAll(".point" + i)
+                var points = this.selectAll(".point" + iSet)
                     .transition(transition)
                     .attr("transform", function (d) {
                         return "translate(" + xScale(yearParser(d[cols.year])) + "," + yScale(d[cols.percent]) + ")"
@@ -385,21 +361,22 @@ function gdbMain() {
             }
 
             // exit()
-            for (var i = 0; iLine < params.dataSet.data.length; iLine++) {
-                this.selectAll(".trendline" + iLine)
-                    .data([params.dataSet.data[iLine]])
+            for (var iSet = 0; iSet < params.dataSet.data.length; iSet++) {
+                this.selectAll(".trendline" + iSet)
+                    .data([params.dataSet.data[iSet]])
                     .exit()
                     .remove();
-                this.selectAll(".point" + iLine)
-                    .data(params.dataSet.data[iLine])
+                this.selectAll(".point" + iSet)
+                    .data(params.dataSet.data[iSet])
                     .exit()
                     .remove();
             }
         }
 
         /**
-         * Draw chart decorations
-         * @param params
+         * Draw chart decorations (non data elements, axis/gridlines/legend)
+         *
+         * @param {Object} params
          */
         function drawDecorations(params) {
             var yAxisLabelTranslate = -38;
@@ -412,11 +389,11 @@ function gdbMain() {
                 this.select(".y.axis")
                     .transition(params.transition)
                     .call(params.axis.y);
-                for (var i = 0; i < params.dataSet.labels.length; i++) {
-                    d3.select(".legend-item-text" + i + "-1")
-                        .text(params.dataSet.labels[i][0] + ",");
-                    d3.select(".legend-item-text" + i + "-2")
-                        .text(params.dataSet.labels[i][1] + ", " + params.dataSet.labels[i][2]);
+                for (var iSet = 0; iSet < params.dataSet.labels.length; iSet++) {
+                    d3.select(".legend-item-text" + iSet + "-1")
+                        .text(params.dataSet.labels[iSet][0] + ",");
+                    d3.select(".legend-item-text" + iSet + "-2")
+                        .text(params.dataSet.labels[iSet][1] + ", " + params.dataSet.labels[iSet][2]);
                 }
 
             }
@@ -454,7 +431,7 @@ function gdbMain() {
                     bottom: 10,
                     left: 10,
                     right: 10
-                }
+                };
                 var legendMargins = {
                     top: 50,
                     bottom: 10,
@@ -500,7 +477,7 @@ function gdbMain() {
                     legendItem.append("text")
                         .classed("legend-item-text legend-item-text" + i + "-2", true)
                         .attr("fill", "black")
-                        .attr("transform", "translate(" + (legendWidth / 2) + "," + (nextLine + legendPadding.top + fudgeTextHeight*2) + ")")
+                        .attr("transform", "translate(" + (legendWidth / 2) + "," + (nextLine + legendPadding.top + fudgeTextHeight * 2) + ")")
                         .text(params.dataSet.labels[i][1] + ", " + params.dataSet.labels[i][2]);
 
                     legendItem.append("path")
@@ -508,7 +485,7 @@ function gdbMain() {
                         .style("fill", plotColors(i))
                         .classed("point legend-point legend-point" + i, true)
                         .attr("d", plotSymbols(i))
-                        .attr("transform", "translate(" + legendWidth / 2 + "," + (nextLine + legendPadding.top + fudgeTextHeight*2 + 15) + ")");
+                        .attr("transform", "translate(" + legendWidth / 2 + "," + (nextLine + legendPadding.top + fudgeTextHeight * 2 + 15) + ")");
 
                     legendItem.append("line")
                         .style("stroke", plotColors(i))
@@ -517,13 +494,19 @@ function gdbMain() {
                         .attr("x1", 0)
                         .attr("x2", legendLineLength)
                         .attr("y", (nextLine + 15))
-                        .attr("transform", "translate(" + (legendWidth / 2 - legendLineLength / 2) + "," + (nextLine + legendPadding.top + fudgeTextHeight*2 + 15) + ")");
+                        .attr("transform", "translate(" + (legendWidth / 2 - legendLineLength / 2) + "," + (nextLine + legendPadding.top + fudgeTextHeight * 2 + 15) + ")");
                     nextLine += legendItemHeight;
                 }
 
             }
         }
 
+        /**
+         * Toggle all data elements and corresponding legend section when mousing around the chart
+         *
+         * @callback highlightData
+         * @param element - target element of the mouseover/mouseout event
+         */
         function highlightData(element) {
             var i = element.getAttribute("data-line");
 
@@ -536,7 +519,7 @@ function gdbMain() {
             $(legendItem).toggleClass("highlight");
             $(legendLine).toggleClass("highlight");
 
-            // Counter-intuitive, but we just set the highlight if it needs it, so now resize the points appropriately
+            // Slightly counter-intuitive, but we just set the highlight if it needs it, so now resize the points appropriately
             if ($(legendItem).hasClass('highlight')) {
                 d3.selectAll(points)
                     .transition()
@@ -547,8 +530,41 @@ function gdbMain() {
                     .attr("d", plotSymbols(i));
             }
         }
-    }
 
+        /**
+         * updateFilters is attached to the select controls
+         *
+         * @callback updateFilters
+         */
+        function updateFilters() {
+            if (this.className === "country-select") {
+                Filters.locations = [+(this.value)];
+                d3.select(".header-text")
+                    .text(Dict.locations[Filters.locations[0]][1] + " " + chartTitle);
+            }
+            if (this.className === "gender-select") {
+                Filters.genders = [+(this.value)];
+            }
+
+            Filters.changed = true;
+            filteredSet = dataFilter(Data);
+            yScale.domain(d3.extent([filteredSet.extents.min, filteredSet.extents.max]));
+            updatePlot.call(chart, {
+                dataSet: filteredSet,
+                initialize: false,
+                update: true,
+                axis: {
+                    x: xAxis,
+                    y: yAxis
+                },
+                gridlines: {
+                    x: xGridlines,
+                    y: yGridlines
+                },
+                trendline: trendline
+            });
+        }
+    }
 
     /**
      * Returns a function that caches and returns a filtered subset of the Data
@@ -642,13 +658,16 @@ function gdbMain() {
      * Progress hack care of
      * @link https://stackoverflow.com/questions/10559264/possible-to-calculate-how-much-data-been-loaded-with-ajax
      *
-     * @param {Object} event
+     * @callback dataLoadProgress
+     * @param {{
+     *   lengthComputable: bool,
+     *   loaded: number,
+     *   total: number
+     * }} event
      */
     function dataLoadProgress(event) {
         if (event.lengthComputable) {
             var percentComplete = d3.format(".0%")(event.loaded / event.total);
-            // Do something with download progress
-            console.log('data file load progress: ' + percentComplete);
             $("#progress-bar").css("width", percentComplete).text(percentComplete);
         }
     }
