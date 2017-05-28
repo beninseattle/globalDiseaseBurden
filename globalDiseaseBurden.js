@@ -74,7 +74,7 @@ function gdbMain() {
         svg.append("g")
             .append("text")
             .classed("header-text", true)
-            .text( Dict.locations[Filters.countries[0]][1] + " " + chartTitle)
+            .text(Dict.locations[Filters.countries[0]][1] + " " + chartTitle)
             .attr("transform", "translate(" + w / 2 + "," + headerTextTranslate + ")");
 
         var chart = svg.append("g")
@@ -202,7 +202,7 @@ function gdbMain() {
             if (this.className === "country-select") {
                 Filters.countries = [+(this.value)];
                 d3.select(".header-text")
-                    .text( Dict.locations[Filters.countries[0]][1] + " " + chartTitle);
+                    .text(Dict.locations[Filters.countries[0]][1] + " " + chartTitle);
             }
             if (this.className === "gender-select") {
                 Filters.genders = [+(this.value)];
@@ -210,10 +210,8 @@ function gdbMain() {
 
             Filters.changed = true;
             filteredSet = dataFilter(Data);
-            yScale = d3.scaleLinear()
-                .domain(d3.extent([filteredSet.extents.min, filteredSet.extents.max]))
-                .range([height, 0]);
-            plot.call(chart, {
+            yScale.domain(d3.extent([filteredSet.extents.min, filteredSet.extents.max]));
+            updatePlot.call(chart, {
                 dataSet: filteredSet,
                 initialize: false,
                 update: true,
@@ -290,11 +288,63 @@ function gdbMain() {
                     .text(function (d) {
                         return d3.format(".1%")(d[cols.percent]);
                     });
-                ;
             }
 
             // exit()
-            for (vari = 0; iLine < params.dataSet.data.length; iLine++) {
+            for (var i = 0; iLine < params.dataSet.data.length; iLine++) {
+                this.selectAll(".trendline" + iLine)
+                    .data([params.dataSet.data[iLine]])
+                    .exit()
+                    .remove();
+                this.selectAll(".point" + iLine)
+                    .data(params.dataSet.data[iLine])
+                    .exit()
+                    .remove();
+            }
+        }
+
+        function updatePlot(params) {
+            var transition = d3.transition()
+                .duration(750)
+                .ease(d3.easeLinear);
+            params['transition'] = transition;
+
+            drawDecorations.call(this, params);
+
+            // PLOT DATA
+            // enter()
+            for (var iLine = 0; iLine < params.dataSet.data.length; iLine++) {
+                this.selectAll(".trendline" + iLine)
+                    .data([params.dataSet.data[iLine]])
+                    .enter();
+
+                this.selectAll(".point" + iLine)
+                    .data(params.dataSet.data[iLine])
+                    .enter()
+                    .attr("d", plotSymbols(iLine));
+            }
+
+            // update
+            for (var i = 0; i < params.dataSet.data.length; i++) {
+                this.selectAll(".trendline" + i)
+                    .transition(transition)
+                    .attr("d", function (d) {
+                        return params.trendline(d);
+                    });
+                var points = this.selectAll(".point" + i)
+                    .transition(transition)
+                    .attr("transform", function (d) {
+                        return "translate(" + xScale(yearParser(d[cols.year])) + "," + yScale(d[cols.percent]) + ")"
+                    });
+
+                points.select("title")
+                    .text(function (d) {
+                        return d3.format(".1%")(d[cols.percent]);
+                    });
+            }
+
+            // exit()
+            for (var i = 0; iLine < params.dataSet.data.length; iLine++) {
                 this.selectAll(".trendline" + iLine)
                     .data([params.dataSet.data[iLine]])
                     .exit()
@@ -311,10 +361,19 @@ function gdbMain() {
          * @param params
          */
         function drawDecorations(params) {
-            if (params.initialize) {
-                var yAxisLabelTranslate = -38;
-                var xAxisLabelTranslate = 32;
+            var yAxisLabelTranslate = -38;
+            var xAxisLabelTranslate = 32;
 
+            if (params.update) {
+                this.select(".gridline.y")
+                    .transition(params.transition)
+                    .call(params.gridlines.y);
+                this.select(".y.axis")
+                    .transition(params.transition)
+                    .call(params.axis.y);
+            }
+
+            if (params.initialize) {
                 this.append("g")
                     .call(params.gridlines.x)
                     .classed("gridline x", true)
@@ -458,13 +517,13 @@ function gdbMain() {
      */
     function makeDataFilter() {
         var dataSubset = {
-                labels: [],
-                data: [],
-                extents: {
-                    min: 0,
-                    max: 0
-                }
-            };
+            labels: [],
+            data: [],
+            extents: {
+                min: 0,
+                max: 0
+            }
+        };
 
         /**
          * Given a Data set, creates a subset, if necessary, which is cached in the closure, and returns it:
