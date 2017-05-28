@@ -6,9 +6,29 @@ body, html {
     text-align: center;
 }
 
+.enable-scripts {
+    padding-top: 150px;
+    padding-bottom: 150px;
+}
+
 .loading {
     padding-top: 150px;
     padding-bottom: 150px;
+    /* display: none; */
+}
+
+#progress {
+    width: 50%;
+    background-color: lightgray;
+    margin: 0 auto;
+}
+#progress-bar {
+    width: 1%;
+    height: 30px;
+    background-color: green;
+    padding-bottom: 7px;
+    text-shadow: 1px 1px black;
+    color: white;
 }
 
 #chart {

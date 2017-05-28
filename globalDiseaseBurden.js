@@ -1,8 +1,21 @@
 function gdbMain() {
+    $(".enable-scripts").hide();
+
     var DictFiles = ['ages', 'genders', 'locations', 'metrics', 'years'];
+    /**
+     * Container for various dictionaries
+     * @type {{
+     *   ages: Object,
+     *   genders: Object,
+     *   locations: Object,
+     *   metrics: Object,
+     *   years: Array
+     * }}
+     */
     var Dict = {};
     var DataFiles = ['allcountries'];
     /**
+     * Data format:
      * Data[0]: Country ID
      * Data[1]: Year
      * Data[2]: Age ID
@@ -22,11 +35,11 @@ function gdbMain() {
 
     /**
      * Container for sorted UI select lists
-     * @type {{locations: Array, genders: Array}}
+     * @type {{locations: Array}}
      */
     var SortedSelects = {
         locationsIds: []
-    }
+    };
 
     $.when(
         $.getJSON(DictFiles[0] + '.json', function (data) {
@@ -37,10 +50,10 @@ function gdbMain() {
         }),
         $.getJSON(DictFiles[2] + '.json', function (data) {
             Dict[DictFiles[2]] = data;
-            SortedSelects.locationsIds = Object.keys(data).sort(function(a,b){
-                if( data[a][1] < data[b][1] ){
+            SortedSelects.locationsIds = Object.keys(data).sort(function (a, b) {
+                if (data[a][1] < data[b][1]) {
                     return -1;
-                } else if( data[a][1] > data[b][1] ){
+                } else if (data[a][1] > data[b][1]) {
                     return 1;
                 } else {
                     return 0;
@@ -53,8 +66,17 @@ function gdbMain() {
         $.getJSON(DictFiles[4] + '.json', function (data) {
             Dict[DictFiles[4]] = data;
         }),
-        $.getJSON(DataFiles[0] + '.json', function (data) {
-            Data = data;
+        $.ajax({
+            'dataType': "json",
+            'url': DataFiles[0] + '.json',
+            'xhr': function () {
+                var xhr = $.ajaxSettings.xhr(); // call the original function
+                xhr.addEventListener('progress', dataLoadProgress, false);
+                return xhr;
+            },
+            'success': function (data) {
+                Data = data;
+            }
         })
     )
         .done(function () {
@@ -552,7 +574,14 @@ function gdbMain() {
          * subset[4]: Mean Percentage
          *
          * @param Data
-         * @returns {Object}
+         * @returns {{
+         *   labels: [],
+         *   data: []
+         *   extents: {
+         *     min: number,
+         *     max: number
+         *   }
+         * }}
          *
          */
         function filterData(Data) {
@@ -603,6 +632,21 @@ function gdbMain() {
         }
 
         return filterData;
+    }
+
+    /**
+     * Progress hack care of
+     * @link https://stackoverflow.com/questions/10559264/possible-to-calculate-how-much-data-been-loaded-with-ajax
+     *
+     * @param {Object} event
+     */
+    function dataLoadProgress(event) {
+        if (event.lengthComputable) {
+            var percentComplete = d3.format(".0%")(event.loaded / event.total);
+            // Do something with download progress
+            console.log('data file load progress: ' + percentComplete);
+            $("#progress-bar").css("width", percentComplete).text(percentComplete);
+        }
     }
 }
 
