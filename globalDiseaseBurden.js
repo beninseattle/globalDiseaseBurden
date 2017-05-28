@@ -16,9 +16,17 @@ function gdbMain() {
         changed: true,
         ages: [36, 38],
         genders: [3],
-        countries: [160],
+        locations: [160],
         metrics: [1, 2]
     };
+
+    /**
+     * Container for sorted UI select lists
+     * @type {{locations: Array, genders: Array}}
+     */
+    var SortedSelects = {
+        locationsIds: []
+    }
 
     $.when(
         $.getJSON(DictFiles[0] + '.json', function (data) {
@@ -29,6 +37,15 @@ function gdbMain() {
         }),
         $.getJSON(DictFiles[2] + '.json', function (data) {
             Dict[DictFiles[2]] = data;
+            SortedSelects.locationsIds = Object.keys(data).sort(function(a,b){
+                if( data[a][1] < data[b][1] ){
+                    return -1;
+                } else if( data[a][1] > data[b][1] ){
+                    return 1;
+                } else {
+                    return 0;
+                }
+            });
         }),
         $.getJSON(DictFiles[3] + '.json', function (data) {
             Dict[DictFiles[3]] = data;
@@ -74,7 +91,7 @@ function gdbMain() {
         svg.append("g")
             .append("text")
             .classed("header-text", true)
-            .text(Dict.locations[Filters.countries[0]][1] + " " + chartTitle)
+            .text(Dict.locations[Filters.locations[0]][1] + " " + chartTitle)
             .attr("transform", "translate(" + w / 2 + "," + headerTextTranslate + ")");
 
         var chart = svg.append("g")
@@ -164,15 +181,16 @@ function gdbMain() {
             var countryControl = controls.append("select")
                 .classed("country-select", true);
 
-            for (var i in Dict.locations) {
+            for (var i = 0; i < SortedSelects.locationsIds.length; i++) {
+                var locationId = SortedSelects.locationsIds[i];
                 var selected = false;
-                if (Filters.countries.indexOf(+i) !== -1) {
+                if (Filters.locations.indexOf(locationId) !== -1) {
                     selected = true;
                 }
                 countryControl.insert("option")
-                    .attr("value", i)
+                    .attr("value", locationId)
                     .property("selected", selected)
-                    .text(Dict.locations[i][1]);
+                    .text(Dict.locations[locationId][1]);
             }
             countryControl.on("change", updateFilters);
 
@@ -200,9 +218,9 @@ function gdbMain() {
         function updateFilters() {
             console.log("update filters and replot chart from " + this.className);
             if (this.className === "country-select") {
-                Filters.countries = [+(this.value)];
+                Filters.locations = [+(this.value)];
                 d3.select(".header-text")
-                    .text(Dict.locations[Filters.countries[0]][1] + " " + chartTitle);
+                    .text(Dict.locations[Filters.locations[0]][1] + " " + chartTitle);
             }
             if (this.className === "gender-select") {
                 Filters.genders = [+(this.value)];
@@ -513,7 +531,7 @@ function gdbMain() {
      *
      * @returns {filterData}
      *
-     * @todo Refactor data filter function, which is hardcoded to only load the first country ID
+     * @todo Refactor data filter function
      */
     function makeDataFilter() {
         var dataSubset = {
@@ -547,7 +565,7 @@ function gdbMain() {
                         for (var iMetric = 0; iMetric < Filters.metrics.length; iMetric++) {
                             var lineSubset = [];
                             for (var i = 0; i < Data.length; i++) {
-                                if (Data[i][0] === Filters.countries[0] &&
+                                if (Data[i][0] === Filters.locations[0] &&
                                     Data[i][2] === Filters.ages[iAge] &&
                                     Data[i][3] === Filters.genders[iGender] &&
                                     Data[i][4] === Filters.metrics[iMetric]) {
