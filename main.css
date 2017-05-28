@@ -14,7 +14,7 @@ body, html {
 .loading {
     padding-top: 150px;
     padding-bottom: 150px;
-    /* display: none; */
+    display: none;
 }
 
 #progress {
@@ -45,7 +45,14 @@ body, html {
 .trendline {
     fill: none;
     stroke-width: 3px;
-    opacity: .50;
+    opacity: .60;
+}
+
+.trendline1,
+.trendline3,
+.legend-line1,
+.legend-line3 {
+    stroke-dasharray: 7 2;
 }
 
 .axis-label {

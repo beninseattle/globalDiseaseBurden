@@ -1,5 +1,6 @@
 function gdbMain() {
     $(".enable-scripts").hide();
+    $(".loading").show();
 
     var DictFiles = ['ages', 'genders', 'locations', 'metrics', 'years'];
     /**
@@ -29,7 +30,7 @@ function gdbMain() {
         changed: true,
         ages: [36, 38],
         genders: [3],
-        locations: [160],
+        locations: [179],
         metrics: [1, 2]
     };
 
@@ -460,7 +461,7 @@ function gdbMain() {
                     left: 10,
                     right: 0
                 };
-                var legendLineLength = 50;
+                var legendLineLength = 80;
                 var legendItemHeight = 50;
                 var legendWidth = margins.right - legendPadding.left - legendPadding.right;
                 var legendHeight = legendItemHeight * params.dataSet.labels.length + legendPadding.top + legendPadding.bottom;
