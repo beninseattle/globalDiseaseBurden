@@ -412,8 +412,10 @@ function gdbMain() {
                     .transition(params.transition)
                     .call(params.axis.y);
                 for (var i = 0; i < params.dataSet.labels.length; i++) {
-                    d3.select(".legend-item-text" + i)
-                        .text(params.dataSet.labels[i]);
+                    d3.select(".legend-item-text" + i + "-1")
+                        .text(params.dataSet.labels[i][0] + ",");
+                    d3.select(".legend-item-text" + i + "-2")
+                        .text(params.dataSet.labels[i][1] + ", " + params.dataSet.labels[i][2]);
                 }
 
             }
@@ -453,41 +455,34 @@ function gdbMain() {
                     right: 10
                 }
                 var legendMargins = {
-                    top: 10,
+                    top: 50,
                     bottom: 10,
                     left: 10,
                     right: 0
                 };
                 var legendLineLength = 50;
-                var legendItemHeight = 32;
+                var legendItemHeight = 50;
                 var legendWidth = margins.right - legendPadding.left - legendPadding.right;
-                var legendHeight = h - margins.top - margins.bottom - legendPadding.top - legendPadding.bottom;
-
+                var legendHeight = legendItemHeight * params.dataSet.labels.length + legendPadding.top + legendPadding.bottom;
                 var legend = this.append("g")
                     .classed("legend", true)
-                    .attr("transform", "translate(" + (width + legendPadding.left) + "," + legendPadding.top + ")");
+                    .attr("transform", "translate(" + (width + legendMargins.left) + "," + legendMargins.top + ")");
 
                 legend.append("rect")
                     .attr("width", legendWidth)
                     .attr("height", legendHeight);
 
-                var nextLine = 24;
-                legend.append("text")
-                    .classed("header-text", true)
-                    .attr("fill", "black")
-                    .attr("transform", "translate(" + legendWidth / 2 + "," + nextLine + ")")
-                    .text("Legend");
+                var nextLine = 0;
 
                 for (var i = 0; i < params.dataSet.labels.length; i++) {
-                    nextLine += legendItemHeight;
                     var legendItem = legend.append("g");
 
-                    var fudgeTextHeight = 10;
+                    var fudgeTextHeight = 13;
                     legendItem.append("rect")
                         .attr("width", legendWidth - legendPadding.left - legendPadding.right)
                         .attr("height", legendItemHeight)
                         .attr("data-line", i)
-                        .attr("transform", "translate(" + legendPadding.left + "," + (nextLine - fudgeTextHeight) + ")")
+                        .attr("transform", "translate(" + legendPadding.left + "," + (nextLine + legendPadding.top) + ")")
                         .classed("legend-item-box legend-item-box" + i, true)
                         .on("mouseover", function () {
                             highlightData(this);
@@ -497,17 +492,22 @@ function gdbMain() {
                         });
 
                     legendItem.append("text")
-                        .classed("legend-item-text legend-item-text" + i, true)
+                        .classed("legend-item-text legend-item-text" + i + "-1", true)
                         .attr("fill", "black")
-                        .attr("transform", "translate(" + (legendMargins.left + 3) + "," + nextLine + ")")
-                        .text(params.dataSet.labels[i]);
+                        .attr("transform", "translate(" + (legendWidth / 2) + "," + (nextLine + legendPadding.top + fudgeTextHeight) + ")")
+                        .text(params.dataSet.labels[i][0] + ",");
+                    legendItem.append("text")
+                        .classed("legend-item-text legend-item-text" + i + "-2", true)
+                        .attr("fill", "black")
+                        .attr("transform", "translate(" + (legendWidth / 2) + "," + (nextLine + legendPadding.top + fudgeTextHeight*2) + ")")
+                        .text(params.dataSet.labels[i][1] + ", " + params.dataSet.labels[i][2]);
 
                     legendItem.append("path")
                         .style("stroke", plotColors(i))
                         .style("fill", plotColors(i))
                         .classed("point legend-point legend-point" + i, true)
                         .attr("d", plotSymbols(i))
-                        .attr("transform", "translate(" + legendWidth / 2 + "," + (nextLine + 15) + ")");
+                        .attr("transform", "translate(" + legendWidth / 2 + "," + (nextLine + legendPadding.top + fudgeTextHeight*2 + 15) + ")");
 
                     legendItem.append("line")
                         .style("stroke", plotColors(i))
@@ -516,8 +516,8 @@ function gdbMain() {
                         .attr("x1", 0)
                         .attr("x2", legendLineLength)
                         .attr("y", (nextLine + 15))
-                        .attr("transform", "translate(" + (legendWidth / 2 - legendLineLength / 2) + "," + (nextLine + 15) + ")");
-
+                        .attr("transform", "translate(" + (legendWidth / 2 - legendLineLength / 2) + "," + (nextLine + legendPadding.top + fudgeTextHeight*2 + 15) + ")");
+                    nextLine += legendItemHeight;
                 }
 
             }
@@ -526,7 +526,7 @@ function gdbMain() {
         function highlightData(element) {
             var i = element.getAttribute("data-line");
 
-            var points = '.point' + i;
+            var points = '.point' + i + ', .legend-point' + i;
             var trendlines = '.trendline' + i;
             var legendItem = '.legend-item-box' + i;
             var legendLine = '.legend-line' + i;
@@ -534,8 +534,6 @@ function gdbMain() {
             $(trendlines).toggleClass("highlight");
             $(legendItem).toggleClass("highlight");
             $(legendLine).toggleClass("highlight");
-
-            //debugger;
 
             // Counter-intuitive, but we just set the highlight if it needs it, so now resize the points appropriately
             if ($(legendItem).hasClass('highlight')) {
@@ -622,11 +620,11 @@ function gdbMain() {
                                 }
                             }
                             dataSubset.data.push(lineSubset);
-                            dataSubset.labels.push(
-                                Dict.ages[Filters.ages[iAge]][0] + ", " +
-                                Dict.genders[Filters.genders[iGender]] + ", " +
+                            dataSubset.labels.push([
+                                Dict.ages[Filters.ages[iAge]][0],
+                                Dict.genders[Filters.genders[iGender]],
                                 Dict.metrics[Filters.metrics[iMetric]]
-                            )
+                            ])
                         }
                     }
                 }

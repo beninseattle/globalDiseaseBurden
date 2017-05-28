@@ -69,6 +69,7 @@ body, html {
 .legend rect {
     stroke-width: 1px;
     fill: white;
+    cursor: pointer;
 }
 
 .legend-point,
@@ -77,8 +78,7 @@ body, html {
 }
 
 .legend-item-text {
-    text-anchor: start;
-    font-size: 75%;
+    text-anchor: middle;
     font-weight: lighter;
     fill: black;
     pointer-events: none;
