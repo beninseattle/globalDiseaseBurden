@@ -214,7 +214,7 @@ function gdbMain() {
             var selected = false;
 
             for (var i = 0; i < SortedSelects.locationsIds.length; i++) {
-                var locationId = SortedSelects.locationsIds[i];
+                var locationId = +SortedSelects.locationsIds[i];
                 selected = Filters.locations.indexOf(locationId) !== -1;
                 countryControl.insert("option")
                     .attr("value", locationId)
