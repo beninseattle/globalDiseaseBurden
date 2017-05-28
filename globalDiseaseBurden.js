@@ -411,6 +411,11 @@ function gdbMain() {
                 this.select(".y.axis")
                     .transition(params.transition)
                     .call(params.axis.y);
+                for (var i = 0; i < params.dataSet.labels.length; i++) {
+                    d3.select(".legend-item-text" + i)
+                        .text(params.dataSet.labels[i]);
+                }
+
             }
 
             if (params.initialize) {
@@ -492,7 +497,7 @@ function gdbMain() {
                         });
 
                     legendItem.append("text")
-                        .classed("legend-item-text", true)
+                        .classed("legend-item-text legend-item-text" + i, true)
                         .attr("fill", "black")
                         .attr("transform", "translate(" + (legendMargins.left + 3) + "," + nextLine + ")")
                         .text(params.dataSet.labels[i]);
