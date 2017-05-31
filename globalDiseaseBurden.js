@@ -38,6 +38,15 @@ function gdbMain() {
     };
 
     /**
+     * @link https://stackoverflow.com/questions/15097712/how-can-i-use-deflated-gzipped-content-with-an-xhr-onprogress-function
+     *
+     * GitHub's servers gzip the data file (good) but the process makes the servers unable to determine the total length.
+     * Lacking control of the servers to alter behavior of the file being served, we save the gzipped length to make the loading
+     * bar work for the purposes of this project.
+     */
+    var GzippedDataLength = 21553123;
+
+    /**
      * Container for UI sorted select list IDs
      * @type {{
      *   locationsIds: Array
@@ -658,6 +667,8 @@ function gdbMain() {
      * Progress hack care of
      * @link https://stackoverflow.com/questions/10559264/possible-to-calculate-how-much-data-been-loaded-with-ajax
      *
+     * @see {GzippedDataLength}
+     *
      * @callback dataLoadProgress
      * @param {{
      *   lengthComputable: bool,
@@ -666,10 +677,12 @@ function gdbMain() {
      * }} event
      */
     function dataLoadProgress(event) {
-        if (event.lengthComputable) {
-            var percentComplete = d3.format(".0%")(event.loaded / event.total);
-            $("#progress-bar").css("width", percentComplete).text(percentComplete);
-        }
+        var totalLength = event.lengthComputable ? event.total : GzippedDataLength;
+        // Just in case we don't get the total AND the data hasn't been compressed, avoid overdrawing the bar
+        var loaded = event.loaded < totalLength ? event.loaded : totalLength;
+
+        var percentComplete = d3.format(".0%")(loaded / totalLength);
+        $("#progress-bar").css("width", percentComplete).text(percentComplete);
     }
 }
 
